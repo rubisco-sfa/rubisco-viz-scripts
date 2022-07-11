@@ -48,8 +48,8 @@ for filename in glob.glob("bib/*.bib"):
 
 # List of authors / affiliations we want in our visualization, we will
 # have trouble if there are authors with the same last name
-rubisco = ["Kuang-Yu Chang","Nathan Collier","Weiwei Fu","Forrest Hoffman","Trevor Keenan","Gretchen Keppel-Aleks","Charles Koven","Jitendra Kumar","David Lawrence","Yue Li","Jiafu Mao","Zelalem Mekonnen","Umakant Mishra","Keith Moore","Mingquan Mu","Robinson Negron-Juarez","James Randerson","William Riley","Xiaoying Shi","Jinyun Tang","Yaoping Wang","Min Xu","Qing Zhu"]
-affiliation = ["LBNL","ORNL","UCI","ORNL","LBNL","UM","LBNL","ORNL","NCAR","UCI","ORNL","LBNL","SNL","UCI","UCI","LBNL","UCI","LBNL","ORNL","LBNL","UTK","ORNL","LBNL"]
+rubisco = ["Forrest Hoffman", "William Riley", "James Randerson", "Kuang-Yu Chang", "Chi Chen", "Nathan Collier", "Weiwei Fu", "Trevor Keenan", "Gretchen Keppel-Aleks", "Charles Koven", "Jitendra Kumar", "David Lawrence", "Yue Li", "Yi Liu", "Morgan Loechli", "Jiafu Mao", "Zelalem Mekonnen", "Umakant Mishra", "Keith Moore", "Mingquan Mu", "Robinson Negron-Juarez", "Bharat Sharma", "Xiaoying Shi", "Zheng Shi", "Jinyun Tang", "Yaoping Wang", "Li Xu", "Min Xu", "Qing Zhu"]
+affiliation = ["ORNL", "LBNL", "UCI", "LBNL", "LBNL", "ORNL", "UCI", "LBNL", "UM", "LBNL", "ORNL", "NCAR", "UCI", "UCI", "UM", "ORNL", "LBNL", "SNL", "UCI", "UCI", "LBNL", "ORNL", "ORNL", "UCI", "LBNL", "ORNL", "UCI", "ORNL", "LBNL"]
 lastname = [a.split(" ")[-1] for a in rubisco]
 
 # Get a color per affiliation
@@ -80,28 +80,30 @@ if not os.path.isfile("author_alias.py"):
 
 # Loop through the bib entries and create edges / increment paper
 # counts
-from author_alias import alias
+from author_alias import alias,aff
+rubisco = list(alias.keys())
+affiliation = [aff[key] for key in rubisco]
 papers  = np.zeros(len(rubisco),dtype=int)
 connect = np.zeros((len(rubisco),len(rubisco)),dtype=int)
 for e in E:
     if 'author' not in e: continue
-    A = sanitize_authors(e)    
-    lastA = [a.split(" ")[-1] for a in A]
+    A = sanitize_authors(e)
     edges = []
-    for a,b in zip(lastA,A):
-        if a in alias and b in alias[a]: edges.append(a)    
+
+    for a in A:
+        for b in alias:
+            if a in alias[b]: edges.append(b)
     for x in edges:
-        a = lastname.index(x)
+        a = rubisco.index(x)
         papers[a] += 1
         for y in edges:
-            b = lastname.index(y)
+            b = rubisco.index(y)
             if a <= b: continue
             connect[a,b] += 1
             
-df = pd.DataFrame({'fullname':rubisco,
-                   'lastname':lastname,
+df = pd.DataFrame({'rubisco':rubisco,
                    'affiliation':affiliation,
-                   'papers':papers},columns=['fullname','lastname','affiliation','papers'])
+                   'papers':papers},columns=['rubisco','affiliation','papers'])
 df = df.sort_values(['affiliation','papers'],ignore_index=True)
 affiliations = list(df.affiliation.unique())
 
@@ -113,12 +115,12 @@ for i,r in df.iterrows():
     x = np.cos(ang)
     y = np.sin(ang)
     if x >= 0:
-        ax.text(x,y,"%2d %s" % (r.papers,r.fullname),size=16,
+        ax.text(x,y,"%2d %s" % (r.papers,r.rubisco),size=16,
                 va='center',ha='left',
                 rotation_mode='anchor',
                 rotation=ang/np.pi*180)
     else:
-        ax.text(x,y,"%s %2d" % (r.fullname,r.papers),size=16,
+        ax.text(x,y,"%s %2d" % (r.rubisco,r.papers),size=16,
                 va='center',ha='right',
                 rotation_mode='anchor',
                 rotation=(ang+np.pi)/np.pi*180)
@@ -147,10 +149,10 @@ for i,a in enumerate(affiliations):
                 rotation=(ang+np.pi)/np.pi*180)
 
     
-for a,n in enumerate(lastname):
-    dfa = df[df.lastname==n]
-    for b,m in enumerate(lastname):
-        dfb = df[df.lastname==m]
+for a,n in enumerate(rubisco):
+    dfa = df[df.rubisco==n]
+    for b,m in enumerate(rubisco):
+        dfb = df[df.rubisco==m]
         if connect[a,b] == 0: continue
         color = '0.5' if dfa.affiliation.values[0] == dfb.affiliation.values[0] else 'k'
         zo    = -2 if dfa.affiliation.values[0] == dfb.affiliation.values[0] else -1
